@@ -2,6 +2,7 @@
 phpMyAdmin mass ip scanner
 
 Python version: 2x
+Version: 1.0
 
 # ip range
     Usage: python pma.py
