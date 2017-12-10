@@ -12,3 +12,4 @@ http://www.apache.org/licenses/LICENSE-2.0
 
 AD1 = "72.52.0.0"     # IP 1
 AD2 = "72.52.255.255" # IP 2
+
