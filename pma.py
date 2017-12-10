@@ -28,7 +28,7 @@ try:
     from requests import get
     from netaddr import IPRange
     from netaddr.core import AddrFormatError
-    from config import (AD1, AD2)
+    from config import AD1, AD2
 except ImportError as error:
     exit("Package not found: %s" % error.message.split(" ")[-1])
 
