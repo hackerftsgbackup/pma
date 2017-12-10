@@ -10,40 +10,63 @@ http://www.apache.org/licenses/LICENSE-2.0
 
 # -*- coding: utf-8 -*-
 
+import sys
+from os import system, path
 from socket import socket, AF_INET, SOCK_STREAM
+from urlparse import urlparse
 from threading import Thread
 from queue import Queue
 from time import sleep
-from sys import stderr
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
+
+sys.dont_write_bytecode = True
+disable_warnings(category=InsecureRequestWarning)
 
 try:
     from requests.exceptions import ConnectionError
     from requests import get
     from netaddr import IPRange
     from netaddr.core import AddrFormatError
+    from config import (AD1, AD2)
 except ImportError as error:
     exit("Package not found: %s" % error.message.split(" ")[-1])
 
-def threader(arg0):
+def threader_url(arg0):
+    """Method to run through threads"""
+    while True:
+        url0 = arg0.get()
+        system("title SCANNING %s" % url0)
+        if havepma1(url0):
+            print >> sys.stderr, "OK %s" % url0
+        arg0.task_done()
+
+def threader_ip(arg0):
     """Method to run through threads"""
     while True:
         ip0, port0 = arg0.get().split(":")
-        if isonline(ip0, int(port0)) and havepma(ip0, int(port0)):
-            print >> stderr, "OK http://%s:%d/phpmyadmin/scripts/setup.php" % (ip0, int(port0))
+        system("title SCANNING http://%s:%d/phpmyadmin/scripts/setup.php" % (ip0, int(port0)))
+        if iponline(ip0, int(port0)) and havepma0(ip0, int(port0)):
+            print >> sys.stderr, "OK http://%s:%d/phpmyadmin/scripts/setup.php" % (ip0, int(port0))
         arg0.task_done()
 
-def isonline(arg0, arg1):
+def iponline(arg0, arg1):
     """Method to check if host is up and port 80 is open"""
     sock0 = socket(AF_INET, SOCK_STREAM)
     sock0.settimeout(0.5)
     return True if sock0.connect_ex((arg0, arg1)) == 0 else False
 
-def havepma(arg0, arg1):
+def havepma0(arg0, arg1):
     """Method to check if host contains phpmyadmin installed"""
     try:
         return True if "donate to phpmyadmin" in get("http://%s:%d/phpmyadmin/scripts/setup.php" % (arg0, arg1), verify=False).text.lower() else False
+    except ConnectionError:
+        return False
+
+def havepma1(arg0):
+    """Method to check if url contains phpmyadmin installed"""
+    try:
+        return True if "donate to phpmyadmin" in get(arg0, verify=False).text.lower() else False
     except ConnectionError:
         return False
 
@@ -51,41 +74,61 @@ def ipgenerate(arg0, arg1):
     """Method to return an array of 'ips' generated"""
     return [str(tmp0) for tmp0 in IPRange(arg0, arg1)]
 
-disable_warnings(category=InsecureRequestWarning)
-
 if __name__ == "__main__":
     try:
-        print >> stderr, "AUTHOR hackerftsg"
+        print >> sys.stderr, "AUTHOR hackerftsg"
 
-        IP1 = raw_input("IP1 ")
+        ARGS = sys.argv
+        URLS = []
 
-        IP2 = raw_input("IP2 ")
+        for index, arg in enumerate(ARGS):
+            if arg == "-pma":
+                urls = ARGS[index + 1 if len(ARGS) >= 3 else index]
+                if path.exists(urls) and path.isfile(urls):
+                    for line in open(urls).readlines():
+                        URLS.append(line)
 
-        if not IP1 or not IP2:
-            raise ValueError("ERROR Empty string")
+        if len(URLS) < 1:
+            if not AD1 or not AD2:
+                raise ValueError("ERROR Empty string")
 
-        TMP1 = ipgenerate(IP1, IP2)
+            TMP1 = ipgenerate(AD1, AD2)
 
-        TMP1 = [ip for ip in TMP1 if type(ip).__name__ == "str"]
+            TMP1 = [ip for ip in TMP1 if type(ip).__name__ == "str"]
 
-        QUEUE = Queue()
+            QUEUE = Queue()
 
-        for index, ip in enumerate(TMP1):
-            thread = Thread(target=threader, args=(QUEUE,))
-            thread.daemon = True
-            thread.start()
+            for index, ip in enumerate(TMP1):
+                thread = Thread(target=threader_ip, args=(QUEUE,))
+                thread.daemon = True
+                thread.start()
 
-        for index, ip in enumerate(TMP1):
-            QUEUE.put("%s:%d" % (ip, 80))
-            sleep(0.3)
+            for index, ip in enumerate(TMP1):
+                QUEUE.put("%s:%d" % (ip, 80))
+                sleep(0.3)
 
-        QUEUE.join()
+            QUEUE.join()
+        else:
+            URLS = [url for url in URLS if bool(urlparse(url).scheme)]
 
-        print >> stderr, "For check if this bots are vulnerable, please use: python xpl.py <list>"
+            QUEUE = Queue()
+
+            for index, url in enumerate(URLS):
+                thread = Thread(target=threader_url, args=(QUEUE,))
+                thread.daemon = True
+                thread.start()
+
+            for index, url in enumerate(URLS):
+                QUEUE.put(url)
+                sleep(0.3)
+
+            QUEUE.join()
+
+        print >> sys.stderr, "For check if this bots are vulnerable, please use: python xpl.py <list>"
 
     except KeyboardInterrupt:
-        print >> stderr, "ERROR KeyboardInterrupt detected"
+        print >> sys.stderr, "ERROR KeyboardInterrupt detected"
     except AddrFormatError:
-        print >> stderr, "ERROR, AddrFormatError detected"
+        print >> sys.stderr, "ERROR, AddrFormatError detected"
     except ValueError as error:
-        print >> stderr, error
+        print >> sys.stderr, error
