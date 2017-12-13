@@ -11,7 +11,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 # -*- coding: utf-8 -*-
 
 import sys
-from os import system, path
+from os import system, path, name
 from socket import socket, AF_INET, SOCK_STREAM
 from urlparse import urlparse
 from threading import Thread
@@ -45,7 +45,8 @@ def threader_ip(arg0):
     """Method to run through threads"""
     while True:
         ip0, port0 = arg0.get().split(":")
-        system("title SCANNING http://%s:%d/phpmyadmin/scripts/setup.php" % (ip0, int(port0)))
+        if name == "nt":
+            system("title SCANNING http://%s:%d/phpmyadmin/scripts/setup.php" % (ip0, int(port0)))
         if iponline(ip0, int(port0)) and havepma0(ip0, int(port0)):
             print >> sys.stderr, "OK http://%s:%d/phpmyadmin/scripts/setup.php" % (ip0, int(port0))
         arg0.task_done()
